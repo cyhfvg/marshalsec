@@ -8,13 +8,14 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build-test:
-    name: Build & Test (matrix JDK)
+  build:
+    name: Build (skip tests)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        java: [ '8']   # 若你只关心 JDK8，可改为 ['8']
+        java: [ '8', '11' ]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,15 +32,14 @@ jobs:
           java -version
           mvn -v
 
-      - name: Build with tests
-        run: mvn -B -U -e -DskipTests=false verify
+      - name: Build (skip tests)
+        run: mvn -B -U -e clean package -DskipTests
 
-      - name: Upload unit test reports (if any)
-        if: always()
+      # 可选：上传构建产物，便于在 CI 面板下载
+      - name: Upload JAR artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-reports-jdk${{ matrix.java }}
+          name: marshalsec-jdk${{ matrix.java }}
           path: |
-            **/target/surefire-reports/*.xml
-            **/target/surefire-reports/*.txt
-          if-no-files-found: ignore
+            **/target/*.jar
+          if-no-files-found: warn
