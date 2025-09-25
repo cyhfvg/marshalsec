@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  build-test:
+    name: Build & Test (matrix JDK)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '8']   # 若你只关心 JDK8，可改为 ['8']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Temurin JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: 'maven'
+
+      - name: Show Java & Maven
+        run: |
+          java -version
+          mvn -v
+
+      - name: Build with tests
+        run: mvn -B -U -e -DskipTests=false verify
+
+      - name: Upload unit test reports (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-jdk${{ matrix.java }}
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/surefire-reports/*.txt
+          if-no-files-found: ignore
